@@ -1,32 +1,58 @@
 # Room Planner — WebMCP Hackathon Submission
 
+## Elevator pitch
+
+"Move the desk toward the window for the light, stay 80 cm from the bed, don't block the door." WebMCP lets the agent check that in centimetres, not pixels, then show you the floor plan.
+
 ## Why this use case is a strong fit for WebMCP
 
-Planning a room layout needs exact numbers, like clearances, collisions, door swings, and wall centering. People often get these wrong just by looking, and an agent looking at a screenshot has the same problem. WebMCP fixes this by giving the agent the same structured data that the page uses to draw the room: exact coordinates in centimeters, object sizes, openings, and constraint states, instead of pixels it has to guess. This means the agent does not only describe a room, it can really reason about it. A question like "will these two objects overlap if I rotate this one 90 degrees" becomes a real geometry check, not a guess.
+Room layout runs on exact numbers: clearances, collisions, door swings, wall centering. People misjudge these by eye, and an agent working from a screenshot misjudges them the same way. WebMCP gives the agent the data the page already uses to draw the room, including coordinates in centimetres, object sizes, openings, and constraint states. With that, the agent answers a question like "do these two objects overlap if I rotate one 90 degrees" by computing it rather than guessing.
 
 ## How it creates a better user experience
 
-Everything happens on screen, nothing hidden. The plan is the single source of truth. The SVG canvas draws it, and the WebMCP tools change it, and both use the same update system, so when an agent moves, rotates, or adds a constraint, it animates on the floor plan just like a manual drag would. The person does not need to trust a text description of the change, they see it happen, and they can undo it (Cmd+Z) like any other edit. They can also lock a piece of furniture so the agent cannot touch it. Collision and constraint checks run again after every tool call, so the app's own validity badge and the agent's answer always match.
+The floor plan is the only state. The SVG canvas draws it and the WebMCP tools change it, both through the same update path, so an agent move, rotation, or new constraint animates on screen the way a manual drag does. You watch the change instead of reading a description of it, and you can undo it with Cmd+Z like any other edit. You can lock a piece of furniture and the agent cannot move it. Collision and constraint checks rerun after every tool call, so the validity badge in the app and the agent's reply stay in agreement.
 
-## What people and agents can do together that was difficult before
+## What people and agents can do together that was hard before
 
-Before structured tools, an agent driving a layout app had two bad options: guess from a screenshot (which is fragile, has no real units, and cannot catch a 3 cm clearance mistake), or the person had to place every object by hand. Now the two can really share the work. A request like "move the desk toward the window, keep 80 cm from the bed, and do not block the door" is something the agent can do and check with numbers, then show a picture of the result. Meanwhile the person watches it happen live and can take the mouse anytime to adjust something themselves. Locked objects let the person keep control over specific pieces even while giving the rest of the work to the agent. This is real shared editing of one grounded model, not an agent blindly using a human's interface.
+Without structured tools, an agent driving a layout app either guesses from a screenshot, which has no real units and misses a 3 cm clearance error, or leaves every placement to the person. Now the work splits. "Move the desk toward the window, keep 80 cm from the bed, and don't block the door" is a request the agent can carry out, check against the numbers, and show you, while you watch and take the mouse whenever you want. Locked objects keep specific pieces under your control while the agent handles the rest.
 
-## How WebMCP was implemented
+## Inspiration
 
-When the page loads, js/webmcp.js creates 26 tools (11 for reading and validating, 14 for changing things, and 1 for capturing an image). It registers them in this order: first it tries navigator.modelContext, then document.modelContext, then falls back to a built in local version so the tools still work through window.roomPlanner.callTool(...) even with no WebMCP host around. Registration follows the standard format:
+Most layout tools give the person and the assistant different information. The person sees a plan drawn to scale. The assistant sees a screenshot and guesses from it. That is how you get a wardrobe door that cannot open, a walkway 12 cm too narrow, or a desk that looks centred but sits a few centimetres to one side. I wanted the agent to work from the same measurements a designer would use, and I wanted the person to watch it work and step in whenever they want. WebMCP is how the agent gets the model the page draws from instead of a picture of it.
 
-```js
-document.modelContext.registerTool({
-  name: "move_object",
-  description: "Move an object to an absolute position...",
-  inputSchema: { /* JSON Schema */ },
-  execute: async (input) => { /* mutate the shared plan, return content + structuredContent */ }
-});
-```
+## What it does
 
-Every tool that changes something runs the collision and constraint check again and sends back the new result along with what changed. This way an agent can move something and check it in one step, instead of doing a call and then checking separately.
+Room Planner is a 2D layout tool in plain HTML, CSS, and JavaScript. You create a room by size or from a template, add furniture from presets or as custom rectangles, and arrange it by dragging, by typing exact coordinates, or with the keyboard. It puts doors and windows on any wall, flags collisions, out-of-bounds objects, and blocked door clearances, and lets you add rules such as "keep 80 cm between the bed and the wall" that turn green or red as you edit. Measurements are in centimetres and the plan persists to `localStorage`.
 
-## About the development
+The page also registers 26 WebMCP tools: 8 that read and validate the plan, 17 that change it or highlight objects on it, and 1 that captures a clean image of the floor plan. An agent reads the geometry, makes a change, and gets the new validation result in one round trip, and every change it makes animates on the canvas like a human edit. Locked objects stay put for the agent too, so "rearrange the room but leave the bed" works as asked.
 
-This app was built using different AI models and providers together. Each one was used for what it does best, from writing code to checking logic and testing ideas, to help build a more solid and well tested app.
+## How I built it
+
+Room Planner is plain HTML, CSS, and JavaScript with no build step and no dependencies. The floor plan is one JavaScript object that everything reads from. An SVG renderer draws it, and the WebMCP tools change it, both through the same update and validation code, so an agent edit and a hand edit are the same operation underneath. The geometry, including footprints, overlaps, distances, and clearances, is plain functions working in centimetres. The WebMCP layer registers on `navigator.modelContext` or `document.modelContext` when a host is present and falls back to a built-in shim otherwise, so the tools behave the same either way.
+
+I used several AI models and providers while building this, each on the parts it handled best, from writing code to checking the geometry to finding edge cases.
+
+## Challenges I ran into
+
+Rotation math caused the most rework. `xCm` and `yCm` mark the top-left corner before rotation, but at 90 and 270 degrees width and depth swap for collision and distance checks. Getting that consistent across the renderer, the geometry module, and the tool schemas took several passes.
+
+Keeping the agent and the UI in sync was subtler. Any mutation that bypassed the shared update code could leave a layout that passed the validity badge while breaking a constraint. I routed every WebMCP tool through the same store mutations the UI uses.
+
+WebMCP itself is experimental. Neither the spec's `document.modelContext` nor the browser's `navigator.modelContext` is widely available, so I wrote a shim, a simulated host, and a console bridge that all call the same `execute` functions.
+
+Exporting a clean SVG took some care. It renders correctly outside the page only after every CSS class is inlined and every `oklch()` colour is converted to sRGB, with the capture clipped to the plan and no app chrome.
+
+## Accomplishments that I'm proud of
+
+I am a perfectionist, and I have lost whole evenings to a single floor plan. There is always a constraint you cannot see coming, or a sequence of moves that checks out at every step and then wrecks something you fixed earlier. Chatting with an agent that could actually reason about the geometry while I watched the plan take shape on screen was the best part of building this.
+
+## What I learned
+
+Grounding did more for reliability than autonomy did. Once the agent had exact geometry, ordinary requests started working, and once every change animated on the canvas, people trusted the agent because they could see and undo what it did. Returning the validation result with every mutation removed most of the "did that work?" follow-up calls. Building against an unshipped spec is workable when the shim and the simulated host share code with the real path.
+
+## What's next for the room planner?
+
+- A 3D preview beside the 2D plan, from the same model.
+- More constraint types: sight lines, traffic flow, natural-light scoring, accessibility clearances.
+- Multi-room plans with shared walls and doorways.
+- Agent-proposed layouts, such as "give me three arrangements that seat six people," with the person picking one to refine.
