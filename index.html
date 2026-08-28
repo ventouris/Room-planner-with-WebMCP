@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Room Planner — plan the room together</title>
+<meta name="description" content="A 2D room layout planner. Place furniture, check clearances, and let an AI agent read and edit the exact same geometry through WebMCP.">
+<meta name="color-scheme" content="light">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,500&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23faf7f1'/><rect x='5' y='5' width='22' height='22' rx='2' fill='none' stroke='%2348423a' stroke-width='3'/><rect x='9' y='9' width='9' height='6' fill='%23c96f43'/></svg>">
+</head>
+<body>
+
+<!-- ───────────────────────────── start screen ───────────────────────────── -->
+<div class="start" id="start-screen">
+  <div class="start-inner">
+    <div class="eyebrow">Room Planner</div>
+    <h1 class="start-title">Plan the room together.</h1>
+    <p class="start-lead">
+      Sketch a floor plan and drop in furniture — an AI agent reads the exact same geometry you
+      see, so it can move, rotate, and check your layout right alongside you.
+    </p>
+
+    <form class="start-card" id="create-form">
+      <div class="card-label">Create a room</div>
+      <div class="start-fields">
+        <label class="field">Width
+          <span class="field-row">
+            <input type="number" id="start-width" value="420" min="60" max="2000" step="10" inputmode="numeric">
+            <span class="unit">cm</span>
+          </span>
+        </label>
+        <label class="field">Height
+          <span class="field-row">
+            <input type="number" id="start-height" value="360" min="60" max="2000" step="10" inputmode="numeric">
+            <span class="unit">cm</span>
+          </span>
+        </label>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit" id="start-create">Create room</button>
+      <p class="start-note" id="start-note" hidden></p>
+    </form>
+
+    <div class="start-divider"><span>or start from a template</span></div>
+
+    <div class="template-cards" id="template-cards">
+      <button class="tpl-card" type="button" data-template="bedroom">
+        <svg viewBox="0 0 100 80" aria-hidden="true">
+          <rect x="2" y="2" width="96" height="76" rx="3" class="tpl-room"/>
+          <rect x="50" y="12" width="38" height="50" rx="2" class="tpl-item"/>
+          <rect x="8" y="12" width="16" height="50" rx="2" class="tpl-item"/>
+        </svg>
+        <span class="tpl-name">Bedroom</span>
+        <span class="tpl-dims">360 × 320 cm</span>
+        <span class="tpl-desc">Double bed, two nightstands, wardrobe</span>
+      </button>
+      <button class="tpl-card" type="button" data-template="office">
+        <svg viewBox="0 0 100 80" aria-hidden="true">
+          <rect x="2" y="2" width="96" height="76" rx="3" class="tpl-room"/>
+          <rect x="12" y="14" width="52" height="18" rx="2" class="tpl-item"/>
+          <rect x="12" y="40" width="18" height="18" rx="2" class="tpl-item"/>
+          <rect x="76" y="12" width="12" height="54" rx="2" class="tpl-item"/>
+        </svg>
+        <span class="tpl-name">Home office</span>
+        <span class="tpl-dims">300 × 280 cm</span>
+        <span class="tpl-desc">Desk, chair, bookshelf</span>
+      </button>
+      <button class="tpl-card" type="button" data-template="living">
+        <svg viewBox="0 0 100 80" aria-hidden="true">
+          <rect x="2" y="2" width="96" height="76" rx="3" class="tpl-room"/>
+          <rect x="8" y="44" width="54" height="20" rx="2" class="tpl-item"/>
+          <rect x="18" y="14" width="30" height="18" rx="2" class="tpl-item"/>
+          <rect x="78" y="8" width="12" height="58" rx="2" class="tpl-item"/>
+        </svg>
+        <span class="tpl-name">Living room</span>
+        <span class="tpl-dims">500 × 400 cm</span>
+        <span class="tpl-desc">Sofa, coffee table, bookshelf</span>
+      </button>
+    </div>
+
+    <div class="start-footer">
+      <button class="linkish" type="button" id="start-demo">Open the demo room</button>
+      <span class="dot-sep">·</span>
+      <button class="linkish" type="button" id="start-resume" hidden>Continue where you left off</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────────────────────── workspace ───────────────────────────── -->
+<div class="app" id="app" hidden data-tab="inspector">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="wordmark" type="button" id="btn-home" title="New room">Room Planner</button>
+      <input class="room-name" id="room-name" value="Bedroom layout" aria-label="Room name" spellcheck="false">
+      <span class="room-dims mono" id="room-dims">420 × 360 cm</span>
+    </div>
+    <div class="topbar-right">
+      <span class="chip agent-chip" id="agent-chip" title="WebMCP status">
+        <span class="chip-dot"></span><span id="agent-chip-text">WebMCP</span>
+      </span>
+      <span class="chip" id="valid-badge"><span class="chip-dot"></span><span id="valid-label">Layout valid</span></span>
+      <button class="btn btn-ghost btn-light" id="btn-light" type="button">
+        <svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+        <span id="btn-light-label">Window light on</span>
+      </button>
+      <span class="v-divider"></span>
+      <button class="btn btn-ghost" id="btn-undo" type="button" title="Undo (⌘Z)">Undo</button>
+      <button class="btn btn-ghost" id="btn-redo" type="button" title="Redo (⇧⌘Z)">Redo</button>
+      <button class="btn btn-ghost" id="btn-export" type="button" title="Export layout as JSON">Export</button>
+      <button class="btn btn-ghost" id="btn-png" type="button" title="Save the floor plan as a PNG image">Image</button>
+      <button class="btn btn-ghost" id="btn-import" type="button" title="Import a layout JSON file">Import</button>
+      <button class="btn btn-ghost" id="btn-reset" type="button" title="Reset to the starting layout">Reset</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+    </div>
+  </header>
+
+  <!-- library -->
+  <aside class="library" aria-label="Furniture library">
+    <div class="section-label lib-templates-label">Templates</div>
+    <div class="lib-templates" id="lib-templates">
+      <button class="tpl-row" type="button" data-template="bedroom"><span class="tpl-row-name">Bedroom</span><span class="mono tpl-row-dims">360×320 cm</span></button>
+      <button class="tpl-row" type="button" data-template="office"><span class="tpl-row-name">Home office</span><span class="mono tpl-row-dims">300×280 cm</span></button>
+      <button class="tpl-row" type="button" data-template="living"><span class="tpl-row-name">Living room</span><span class="mono tpl-row-dims">500×400 cm</span></button>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="section-label">Furniture</div>
+    <div class="preset-list" id="preset-list"></div>
+
+    <div class="hr"></div>
+
+    <button class="btn btn-dashed btn-block" id="btn-custom-toggle" type="button">+ Custom rectangle</button>
+    <div class="custom-form" id="custom-form" hidden>
+      <label class="mini-field">Label
+        <input id="custom-label" value="Custom item" spellcheck="false">
+      </label>
+      <div class="mini-row">
+        <label class="mini-field">Width<input type="number" id="custom-width" class="mono" value="60" min="5" inputmode="numeric"></label>
+        <label class="mini-field">Depth<input type="number" id="custom-height" class="mono" value="60" min="5" inputmode="numeric"></label>
+      </div>
+      <button class="btn btn-primary btn-block" id="btn-custom-add" type="button">Add to room</button>
+    </div>
+  </aside>
+
+  <!-- canvas -->
+  <main class="canvas-wrap" id="canvas-wrap">
+    <div class="agent-banner" id="agent-banner" hidden>
+      <svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M17.5 17.5L15 15M6 18l2.5-2.5M17.5 6.5L15 9"/></svg>
+      <span id="agent-banner-text"></span>
+      <button class="icon-btn" id="btn-clear-highlights" type="button" aria-label="Clear highlight">
+        <svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <svg id="plan" class="plan" role="img" aria-label="Room floor plan"></svg>
+    <p class="canvas-hint" id="canvas-hint">Drag furniture to move it · arrow keys nudge · <kbd>R</kbd> rotate · <kbd>⌫</kbd> delete</p>
+  </main>
+
+  <!-- inspector -->
+  <aside class="inspector" id="inspector" aria-label="Selected object">
+    <div id="inspector-empty" class="panel-empty">
+      Select an object on the canvas to inspect and edit it, or add one from the furniture library.
+    </div>
+    <div id="inspector-body" hidden>
+      <input class="insp-name" id="insp-label" aria-label="Object name" spellcheck="false">
+      <div class="insp-grid">
+        <label class="field">Width<span class="field-row"><input type="number" class="mono" id="insp-width" min="5" inputmode="numeric"><span class="unit">cm</span></span></label>
+        <label class="field">Depth<span class="field-row"><input type="number" class="mono" id="insp-height" min="5" inputmode="numeric"><span class="unit">cm</span></span></label>
+        <label class="field">X<span class="field-row"><input type="number" class="mono" id="insp-x" inputmode="numeric"><span class="unit">cm</span></span></label>
+        <label class="field">Y<span class="field-row"><input type="number" class="mono" id="insp-y" inputmode="numeric"><span class="unit">cm</span></span></label>
+        <label class="field field-wide">Rotation<span class="readout mono" id="insp-rotation">0°</span></label>
+      </div>
+      <div class="insp-actions">
+        <button class="btn btn-ghost" id="btn-rotate" type="button">
+          <svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/></svg><span class="btn-text">Rotate</span>
+        </button>
+        <button class="btn btn-ghost" id="btn-lock" type="button">
+          <svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="btn-text" id="btn-lock-label">Lock position</span>
+        </button>
+        <button class="btn btn-ghost" id="btn-duplicate" type="button">
+          <svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><span class="btn-text">Duplicate</span>
+        </button>
+        <button class="btn btn-danger" id="btn-delete" type="button">
+          <svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span class="btn-text">Delete</span>
+        </button>
+      </div>
+      <div class="hr"></div>
+      <dl class="readout-list">
+        <div><dt>Nearest wall (top)</dt><dd class="mono" id="ro-top">—</dd></div>
+        <div><dt>Nearest wall (right)</dt><dd class="mono" id="ro-right">—</dd></div>
+        <div><dt>Nearest wall (bottom)</dt><dd class="mono" id="ro-bottom">—</dd></div>
+        <div><dt>Nearest wall (left)</dt><dd class="mono" id="ro-left">—</dd></div>
+        <div><dt>Nearest window</dt><dd class="mono" id="ro-window">—</dd></div>
+        <div><dt>Nearest object</dt><dd class="mono" id="ro-object">—</dd></div>
+      </dl>
+    </div>
+  </aside>
+
+  <!-- bottom tabs -->
+  <nav class="tabsbar" role="tablist" aria-label="Layout panels">
+    <button class="tab is-active" type="button" role="tab" data-tab="inspector" id="tab-inspector">Selected object</button>
+    <button class="tab" type="button" role="tab" data-tab="openings" id="tab-openings">Doors &amp; windows</button>
+    <button class="tab" type="button" role="tab" data-tab="constraints" id="tab-constraints">Constraints<span id="constraints-badge"></span></button>
+  </nav>
+
+  <section class="panel panel-summary" id="panel-summary" role="tabpanel" aria-labelledby="tab-inspector">
+    <div class="summary-row" id="summary-row" hidden>
+      <div><span class="summary-key">Type</span><span class="summary-val" id="sum-label">—</span></div>
+      <div><span class="summary-key">Footprint</span><span class="summary-val mono" id="sum-size">—</span></div>
+      <div><span class="summary-key">Position</span><span class="summary-val mono" id="sum-pos">—</span></div>
+      <div><span class="summary-key">Rotation</span><span class="summary-val mono" id="sum-rot">—</span></div>
+      <div><span class="summary-key">Locked</span><span class="summary-val mono" id="sum-locked">—</span></div>
+    </div>
+    <p class="summary-note" id="summary-note">Nothing selected yet — click any piece of furniture on the canvas.</p>
+  </section>
+
+  <section class="panel panel-openings" id="panel-openings" role="tabpanel" aria-labelledby="tab-openings" hidden>
+    <div id="openings-list" class="openings-list"></div>
+    <div class="panel-actions">
+      <button class="btn btn-dashed" id="btn-add-door" type="button">+ Add door</button>
+      <button class="btn btn-dashed" id="btn-add-window" type="button">+ Add window</button>
+    </div>
+  </section>
+
+  <section class="panel panel-constraints" id="panel-constraints" role="tabpanel" aria-labelledby="tab-constraints" hidden>
+    <div id="collision-block" hidden>
+      <div class="section-label">Collisions</div>
+      <div id="collision-list"></div>
+    </div>
+    <div id="constraints-list"></div>
+    <div class="panel-actions">
+      <button class="btn btn-dashed" id="btn-constraint-toggle" type="button">+ Add constraint</button>
+      <span class="muted-note" id="no-objects-note" hidden>Add furniture to the room before creating a constraint.</span>
+    </div>
+    <div class="constraint-form" id="constraint-form" hidden>
+      <label class="mini-field">Type
+        <select id="cf-type">
+          <option value="min_distance">Minimum distance between two objects</option>
+          <option value="near_window">Stay near a window</option>
+          <option value="against_wall">Stay against a wall</option>
+          <option value="keep_clear">Keep an opening clear</option>
+          <option value="clearance_zone">Keep a functional clearance in front of furniture</option>
+          <option value="max_distance">Stay near another object</option>
+          <option value="facing">Face another object</option>
+          <option value="centered_on_wall">Stay centred on a wall</option>
+        </select>
+      </label>
+      <label class="mini-field" id="cf-a-wrap"><span id="cf-a-label">Object</span><select id="cf-a"></select></label>
+      <label class="mini-field" id="cf-b-wrap"><span id="cf-b-label">And</span><select id="cf-b"></select></label>
+      <label class="mini-field" id="cf-distance-wrap">Min. distance<span class="field-row"><input type="number" class="mono" id="cf-distance" value="80" min="0" inputmode="numeric"><span class="unit">cm</span></span></label>
+      <label class="mini-field" id="cf-max-wrap">Max. distance<span class="field-row"><input type="number" class="mono" id="cf-max" value="100" min="0" inputmode="numeric"><span class="unit">cm</span></span></label>
+      <label class="mini-field" id="cf-opening-wrap">Opening<select id="cf-opening"></select></label>
+      <label class="mini-field" id="cf-clearance-wrap">Clearance<span class="field-row"><input type="number" class="mono" id="cf-clearance" value="90" min="0" inputmode="numeric"><span class="unit">cm</span></span></label>
+      <label class="mini-field" id="cf-side-wrap">Side
+        <select id="cf-side">
+          <option value="top">Top</option>
+          <option value="right">Right</option>
+          <option value="bottom" selected>Bottom</option>
+          <option value="left">Left</option>
+        </select>
+      </label>
+      <label class="mini-field" id="cf-wall-wrap">Wall
+        <select id="cf-wall">
+          <option value="top">Top</option>
+          <option value="right">Right</option>
+          <option value="bottom" selected>Bottom</option>
+          <option value="left">Left</option>
+        </select>
+      </label>
+      <label class="mini-field" id="cf-tolerance-wrap">Tolerance<span class="field-row"><input type="number" class="mono" id="cf-tolerance" value="5" min="0" inputmode="numeric"><span class="unit">cm</span></span></label>
+      <button class="btn btn-primary" id="btn-constraint-add" type="button">Add constraint</button>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/geometry.js"></script>
+<script src="js/presets.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/export.js"></script>
+<script src="js/webmcp.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
