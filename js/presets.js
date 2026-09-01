@@ -13,7 +13,6 @@
     { key: 'dining_table', type: 'table',      label: 'Dining Table', w: 140, h: 80  },
     { key: 'wardrobe',     type: 'wardrobe',   label: 'Wardrobe',     w: 120, h: 60  },
     { key: 'bookshelf',    type: 'bookshelf',  label: 'Bookshelf',    w: 80,  h: 30  },
-    { key: 'nightstand',   type: 'nightstand', label: 'Nightstand',   w: 45,  h: 45  },
     { key: 'coffee_table',     type: 'coffee_table',     label: 'Coffee Table',     w: 90,  h: 50 },
     { key: 'armchair',         type: 'armchair',         label: 'Armchair',         w: 75,  h: 75 },
     { key: 'floor_lamp',       type: 'floor_lamp',       label: 'Floor Lamp',       w: 30,  h: 30 },
@@ -28,8 +27,8 @@
       room: { widthCm: 360, heightCm: 320 },
       objects: [
         { id: 'bed-1',        type: 'bed',        label: 'Double Bed', xCm: 100, yCm: 0,   widthCm: 160, heightCm: 200, rotation: 0, locked: false },
-        { id: 'nightstand-1', type: 'nightstand', label: 'Nightstand', xCm: 45,  yCm: 0,   widthCm: 45,  heightCm: 45,  rotation: 0, locked: false },
-        { id: 'nightstand-2', type: 'nightstand', label: 'Nightstand', xCm: 270, yCm: 0,   widthCm: 45,  heightCm: 45,  rotation: 0, locked: false },
+        { id: 'side-table-1', type: 'side_table', label: 'Side Table', xCm: 45,  yCm: 0,   widthCm: 45,  heightCm: 45,  rotation: 0, locked: false },
+        { id: 'side-table-2', type: 'side_table', label: 'Side Table', xCm: 270, yCm: 0,   widthCm: 45,  heightCm: 45,  rotation: 0, locked: false },
         { id: 'wardrobe-1',   type: 'wardrobe',   label: 'Wardrobe',   xCm: 120, yCm: 260, widthCm: 120, heightCm: 60,  rotation: 0, locked: false }
       ],
       openings: [
