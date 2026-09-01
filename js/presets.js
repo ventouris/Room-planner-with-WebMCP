@@ -14,11 +14,8 @@
     { key: 'wardrobe',     type: 'wardrobe',   label: 'Wardrobe',     w: 120, h: 60  },
     { key: 'bookshelf',    type: 'bookshelf',  label: 'Bookshelf',    w: 80,  h: 30  },
     { key: 'nightstand',   type: 'nightstand', label: 'Nightstand',   w: 45,  h: 45  },
-    { key: 'sofa_bed',         type: 'sofa_bed',         label: 'Sofa Bed',         w: 200, h: 90 },
-    { key: 'work_desk',        type: 'work_desk',        label: 'Work Desk',        w: 120, h: 60 },
-    { key: 'office_chair',     type: 'office_chair',     label: 'Office Chair',     w: 50,  h: 50 },
     { key: 'coffee_table',     type: 'coffee_table',     label: 'Coffee Table',     w: 90,  h: 50 },
-    { key: 'reading_armchair', type: 'reading_armchair', label: 'Reading Armchair', w: 75,  h: 75 },
+    { key: 'armchair',         type: 'armchair',         label: 'Armchair',         w: 75,  h: 75 },
     { key: 'floor_lamp',       type: 'floor_lamp',       label: 'Floor Lamp',       w: 30,  h: 30 },
     { key: 'side_table',       type: 'side_table',       label: 'Side Table',       w: 45,  h: 45 }
   ];
